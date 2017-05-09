@@ -14,7 +14,10 @@ $ws_worker->onConnect = 'onConnect';
 $ws_worker->onMessage = 'onMessage';
 $ws_worker->onClose = 'onClose';
 
-
+$RoomList = array();
+$RoomLimit = 100;
+$RoomCount = count($RoomList);
+$RoomMaxPeople = 2;
 
 function sendToAll($connection,$data){
     foreach($connection->worker->connections as $client){
@@ -25,6 +28,40 @@ function sendToAll($connection,$data){
 function getCount($connection){
     return count($connection->worker->connections);
 }
+function createRoom($connection){
+    if (count($RoomList) > $RoomLimit) {
+        $result->result = -1;
+        $result->roomNumber = -1;
+    } else {
+        $result->result = 0;
+        $result->roomNumber = count($RoomList)+1;
+        $result->creator = $connection->id;
+        $result->count = 1;
+        $RoomList[$result->roomNumber] = $result;
+    }
+    return $result;
+}
+function joinRoom($connection,$roomId){
+    if ($RoomList[$roomId] == null) {
+        $result->result = -1;
+        $result->message = "没有这个房间";
+    } elseif ($RoomList[$roomId].count > $RoomMaxPeople) {
+        $result->result = -2;
+        $result->message = "房间人满";
+    } elseif ($connection->isInRoom) {
+        $result->result = -3;
+        $result->message = "已经在房间中";
+    } else {
+        $result->result = 0;
+        $result->message = "加入成功";
+        // $RoomList[$roomId]::addInRoom($connection);
+        $RoomList[$roomId]->count++;;
+        $result->room = $RoomList[$roomId];
+        $connection->isInRoom = true;
+    }
+    return $result;
+}
+
 
 function onConnect($connection) {
     $_timeout = 10;
@@ -32,8 +69,7 @@ function onConnect($connection) {
     $_onlineTips = "玩家{$connection->id}已上线!当前玩家数量:".$_count."\n";
     sendToAll($connection,$_onlineTips);
     print_r($_onlineTips);
-    $connection->auth_timer_id = Timer::add($_timeout
-    , function()use($connection){
+    $connection->auth_timer_id = Timer::add($_timeout, function()use($connection){
         $connection->send("超时未认证,连接关闭");
         $connection->close();
     }, null, false);
@@ -53,6 +89,14 @@ function onMessage($connection, $data)
         break;
         case 'message':
             sendToAll($connection,"玩家{$connection->id}：".$result->context);
+        break;
+        case 'createroom':
+            $re = $connection->send(createRoom($connection));
+            $connection->send(json_encode($re));
+        break;
+        case 'joinroom':
+            $re = joinRoom($connection,$result->roomId);
+            $connection->send(json_encode($re));
         break;
     }
 }
