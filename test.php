@@ -7,7 +7,7 @@ use Workerman\Lib\Timer;
 require_once __DIR__ .'./Workerman/Autoloader.php';
 
 
-$ws_worker = new Worker("websocket://0.0.0.0:191");
+$ws_worker = new Worker("websocket://0.0.0.0:2346");
 
 $ws_worker->count = 1;
 $ws_worker->onConnect = 'onConnect';
@@ -79,8 +79,9 @@ function onConnect($connection) {
 function onMessage($connection, $data)
 {
     $result = json_decode($data);
-    switch($result->msg) {
-        case 'login':
+    var_dump($result);
+    switch($result->mCmd) {
+        case 0:
             if ($result->token == 1) {
                 Timer::del($connection->auth_timer_id);
                 $connection->send("登录成功!");
