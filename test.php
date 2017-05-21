@@ -1,7 +1,7 @@
 <?php
 // define('__ROOT__', dirname(dirname(__FILE__))); 
-use Workerman\Worker;
-use Workerman\Lib\Timer;
+use Workerman_linux\Worker;
+use Workerman_linux\Lib\Timer;
 require_once __DIR__ .'/Workerman/Autoloader.php';
 $ws_worker = new Worker("websocket://0.0.0.0:2346");
 $ws_worker->count = 1;
